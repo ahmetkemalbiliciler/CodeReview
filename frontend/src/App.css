@@ -1,0 +1,52 @@
+@import "tailwindcss";
+
+@theme {
+  /* Tailwind v4 renk eşleştirmeleri */
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-bg-tertiary: var(--bg-tertiary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-accent: var(--accent);
+  --color-border: var(--border);
+
+  /* Light theme variables */
+  --light-bg-primary: #ffffff;
+  --light-bg-secondary: #f8f9fa;
+  --light-bg-tertiary: #f1f3f5;
+  --light-text-primary: #212529;
+  --light-text-secondary: #6c757d;
+  --light-accent: #007bff;
+  --light-border: #dee2e6;
+
+  /* Dark theme variables */
+  --dark-bg-primary: #11001c; /* En derin ton - Ana arka plan */
+  --dark-bg-secondary: #290025; /* Bir tık açık - Kartlar ve bölümler */
+  --dark-bg-tertiary: #4f0147; /* Üçüncü ton - Eksik olan renk */
+  --dark-text-primary: #ffffff; /* Birincil yazı - Beyaz */
+  --dark-text-secondary: #a1a1aa; /* İkincil yazı - Gri */
+  --dark-accent: #3a015c; /* Canlı ton - Vurgu rengi */
+  --dark-border: #35012c; /* Ara ton - Kenarlıklar */
+}
+
+/* Dark theme (default) */
+:root {
+  --bg-primary: var(--dark-bg-primary);
+  --bg-secondary: var(--dark-bg-secondary);
+  --bg-tertiary: var(--dark-bg-tertiary);
+  --text-primary: var(--dark-text-primary);
+  --text-secondary: var(--dark-text-secondary);
+  --accent: var(--dark-accent);
+  --border: var(--dark-border);
+}
+
+/* Light theme */
+[data-theme="light"] {
+  --bg-primary: var(--light-bg-primary);
+  --bg-secondary: var(--light-bg-secondary);
+  --bg-tertiary: var(--light-bg-tertiary);
+  --text-primary: var(--light-text-primary);
+  --text-secondary: var(--light-text-secondary);
+  --accent: var(--light-accent);
+  --border: var(--light-border);
+}
