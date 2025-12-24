@@ -1,0 +1,140 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id       String    @id @db.Uuid
+  projects Project[]
+}
+
+model Project {
+  id          String   @id @default(uuid()) @db.Uuid
+  ownerId     String   @db.Uuid
+  name        String
+  description String?
+  createdAt   DateTime @default(now())
+
+  owner       User          @relation(fields: [ownerId], references: [id])
+  versions    CodeVersion[]
+  comparisons Comparison[]
+}
+
+model CodeVersion {
+  id           String   @id @default(uuid()) @db.Uuid
+  projectId    String   @db.Uuid
+  versionLabel String?
+  uploadedAt   DateTime @default(now())
+
+  project  Project         @relation(fields: [projectId], references: [id])
+  analysis AnalysisResult?
+}
+
+model AnalysisResult {
+  id            String   @id @default(uuid()) @db.Uuid
+  codeVersionId String   @unique @db.Uuid
+  summary       String
+  createdAt     DateTime @default(now())
+
+  codeVersion CodeVersion     @relation(fields: [codeVersionId], references: [id])
+  issues      AnalysisIssue[]
+}
+
+model AnalysisIssue {
+  id         String @id @default(uuid()) @db.Uuid
+  analysisId String @db.Uuid
+
+  issueCode  IssueCode
+  severity   Severity
+  complexity Complexity
+
+  functionName String?
+  startLine    Int?
+  endLine      Int?
+
+  analysis AnalysisResult @relation(fields: [analysisId], references: [id])
+  snippet  IssueSnippet?
+}
+
+model IssueSnippet {
+  id              String @id @default(uuid()) @db.Uuid
+  analysisIssueId String @unique @db.Uuid
+
+  beforeSnippet String?
+  afterSnippet  String?
+
+  issue AnalysisIssue @relation(fields: [analysisIssueId], references: [id])
+}
+
+model Comparison {
+  id             String   @id @default(uuid()) @db.Uuid
+  projectId      String   @db.Uuid
+  fromAnalysisId String   @db.Uuid
+  toAnalysisId   String   @db.Uuid
+  createdAt      DateTime @default(now())
+
+  project     Project            @relation(fields: [projectId], references: [id])
+  results     ComparisonResult[]
+  explanation AIExplanation?
+}
+
+model ComparisonResult {
+  id           String @id @default(uuid()) @db.Uuid
+  comparisonId String @db.Uuid
+
+  issueCode  IssueCode
+  changeType ChangeType
+
+  beforeSeverity   Severity?
+  beforeComplexity Complexity?
+
+  afterSeverity   Severity?
+  afterComplexity Complexity?
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id])
+}
+
+model AIExplanation {
+  id           String   @id @default(uuid()) @db.Uuid
+  comparisonId String   @unique @db.Uuid
+  explanation  String
+  createdAt    DateTime @default(now())
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id])
+}
+
+enum Severity {
+  low
+  medium
+  high
+}
+
+enum Complexity {
+  O_1
+  O_n
+  O_n2
+}
+
+enum ChangeType {
+  IMPROVED
+  UNCHANGED
+  WORSENED
+}
+
+enum IssueCode {
+  NESTED_LOOP
+  UNUSED_VARIABLE
+  MAGIC_NUMBER
+  LONG_FUNCTION
+  DUPLICATE_CODE
+}
