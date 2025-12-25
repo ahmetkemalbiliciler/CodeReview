@@ -1,106 +1,220 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format } from "date-fns";
 import CodeIcon from "@mui/icons-material/Code";
-import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 import CancelIcon from "@mui/icons-material/Cancel";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
+import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import { projects, versions, comparisons } from "../services/api";
 
-
-// Mock Data Types
-interface Review {
-    id: string;
-    date: Date;
-    fileName: string;
-    language: string;
-    score: number;
-    pros: string[];
-    cons: string[];
-    codeSnippet: string;
+interface AnalysisIssue {
+    issueCode: string;
+    severity: "low" | "medium" | "high";
+    complexity: string;
+    startLine?: number;
+    endLine?: number;
+    // Backend returns nested snippet object
+    snippet?: {
+        beforeSnippet?: string;
+        afterSnippet?: string;
+    };
+    // Legacy support if flattened
+    beforeSnippet?: string;
+    afterSnippet?: string;
 }
 
-// Mock Data
-const MOCK_REVIEWS: Review[] = [
-    {
-        id: "1",
-        date: new Date(2023, 11, 24, 14, 30),
-        fileName: "auth.service.ts",
-        language: "TypeScript",
-        score: 85,
-        pros: [
-            "Proper use of Dependency Injection",
-            "Clean error handling structure",
-            "Good type safety practices",
-        ],
-        cons: [
-            "Missing input validation for password strength",
-            "Hardcoded JWT secret in one method (fixed in v2)",
-        ],
-        codeSnippet: `async validateUser(email: string, pass: string): Promise<any> {
-    const user = await this.usersService.findOne(email);
-    if (user && user.password === pass) {
-      const { password, ...result } = user;
-      return result;
-    }
-    return null;
-  }`,
-    },
-    {
-        id: "2",
-        date: new Date(2023, 11, 23, 9, 15),
-        fileName: "UserProfile.tsx",
-        language: "React/TSX",
-        score: 60,
-        pros: ["Component is functional", "Uses correct hooks for state"],
-        cons: [
-            "Inline styles should be avoided",
-            "Large component needs breaking down",
-            "Missing proper prop types definition",
-            "useEffect dependency array is incomplete",
-        ],
-        codeSnippet: `useEffect(() => {
-    fetchProfile();
-}, []); // Missing dependencies
+interface Analysis {
+    id: string;
+    summary: string;
+    issues: AnalysisIssue[];
+    createdAt: string;
+}
 
-const fetchProfile = async () => {
-   // ... implementation
-}`,
-    },
-    {
-        id: "3",
-        date: new Date(2023, 11, 20, 16, 45),
-        fileName: "utils.py",
-        language: "Python",
-        score: 92,
-        pros: [
-            "Excellent docstrings and typing",
-            "Efficient list comprehension usage",
-            "Follows PEP 8 guidelines",
-        ],
-        cons: ["Slightly complex regex in email validator"],
-        codeSnippet: `def process_data(data: List[Dict]) -> List[int]:
-    """Extracs IDs from data dictionaries."""
-    return [item['id'] for item in data if 'id' in item and item['active']]`,
-    },
-];
+interface Version {
+    id: string;
+    versionLabel: string;
+    uploadedAt: string;
+    analysis?: Analysis;
+}
+
+interface Project {
+    id: string;
+    name: string;
+}
+
+interface ComparisonResultItem {
+    id: string;
+    issueCode: string;
+    changeType: "IMPROVED" | "UNCHANGED" | "WORSENED";
+    beforeSeverity?: string;
+    afterSeverity?: string;
+    beforeComplexity?: string;
+    afterComplexity?: string;
+}
+
+interface AIExplanation {
+    explanation: string;
+}
+
+interface Comparison {
+    id: string;
+    createdAt: string;
+    results: ComparisonResultItem[];
+    explanation?: AIExplanation;
+}
+
+// Helper to safely format dates
+const safeFormatDate = (dateString: string | undefined, formatStr: string) => {
+    if (!dateString) return "N/A";
+    try {
+        const date = new Date(dateString);
+        if (isNaN(date.getTime())) return "Invalid Date";
+        return format(date, formatStr);
+    } catch (e) {
+        return "Error";
+    }
+};
 
 export default function History() {
-    // On mobile, if selectedReview is not null, we show the detail view
-    // On desktop, we always show both
-    const [selectedReview, setSelectedReview] = useState<Review | null>(
-        MOCK_REVIEWS[0]
-    );
+    const [projectList, setProjectList] = useState<Project[]>([]);
+    const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+    const [versionList, setVersionList] = useState<Version[]>([]);
+    const [selectedVersion, setSelectedVersion] = useState<Version | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
 
-    // Helper to handle back on mobile
+    // Comparison State
+    const [isCompareMode, setIsCompareMode] = useState(false);
+    const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
+    const [isComparing, setIsComparing] = useState(false);
+    const [comparisonData, setComparisonData] = useState<Comparison | null>(null);
+    const [isExplaining, setIsExplaining] = useState(false);
+
+    // Fetch Projects
+    useEffect(() => {
+        projects.list().then((data) => {
+            setProjectList(data);
+            if (data.length > 0) {
+                setSelectedProjectId(data[0].id);
+            }
+        }).catch(console.error);
+    }, []);
+
+    // Fetch Versions when Project changes
+    useEffect(() => {
+        if (!selectedProjectId) return;
+
+        setIsLoading(true);
+        // Reset states
+        setSelectedVersion(null);
+        setComparisonData(null);
+        setIsCompareMode(false);
+        setSelectedForCompare([]);
+
+        versions.list(selectedProjectId).then(async (data) => {
+            const sorted = data.sort((a: any, b: any) =>
+                new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()
+            );
+            setVersionList(sorted);
+        }).catch(console.error).finally(() => setIsLoading(false));
+    }, [selectedProjectId]);
+
+    const handleVersionSelect = async (version: Version) => {
+        if (isCompareMode) {
+            // Toggle selection for comparison
+            if (selectedForCompare.includes(version.id)) {
+                setSelectedForCompare(prev => prev.filter(id => id !== version.id));
+            } else {
+                if (selectedForCompare.length < 2) {
+                    setSelectedForCompare(prev => [...prev, version.id]);
+                } else {
+                    // Replace the oldest selection or just alert?
+                    // Let's just prevent > 2
+                    alert("You can only compare 2 versions at a time.");
+                }
+            }
+            return;
+        }
+
+        // Normal view mode
+        setComparisonData(null);
+        // Normal view mode
+        setComparisonData(null);
+        setIsLoading(true);
+        try {
+            const fullVersion = await versions.get(version.id);
+            setSelectedVersion(fullVersion);
+        } catch (e) {
+            console.error(e);
+            // Fallback to local version if fetch fails
+            setSelectedVersion(version);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const toggleCompareMode = () => {
+        setIsCompareMode(!isCompareMode);
+        setSelectedForCompare([]);
+        setComparisonData(null);
+        if (!isCompareMode) {
+            setSelectedVersion(null);
+        }
+    };
+
+    const handleCompare = async () => {
+        if (selectedForCompare.length !== 2) return;
+
+        setIsComparing(true);
+        // Sort: Older first (from), Newer second (to)
+        const v1 = versionList.find(v => v.id === selectedForCompare[0]);
+        const v2 = versionList.find(v => v.id === selectedForCompare[1]);
+
+        if (!v1 || !v2) return;
+
+        const date1 = new Date(v1.uploadedAt).getTime();
+        const date2 = new Date(v2.uploadedAt).getTime();
+
+        const fromVersionId = date1 < date2 ? v1.id : v2.id;
+        const toVersionId = date1 < date2 ? v2.id : v1.id;
+
+        try {
+            const result = await comparisons.create(selectedProjectId, {
+                fromVersionId,
+                toVersionId
+            });
+            setComparisonData(result);
+        } catch (error) {
+            console.error(error);
+            alert("Comparison failed. Ensure both versions have been analyzed.");
+        } finally {
+            setIsComparing(false);
+        }
+    };
+
+    const handleGenerateExplanation = async () => {
+        if (!comparisonData) return;
+        setIsExplaining(true);
+        try {
+            const explanation = await comparisons.explain(comparisonData.id);
+            setComparisonData(prev => prev ? { ...prev, explanation } : null);
+        } catch (error) {
+            console.error(error);
+            alert("Failed to generate explanation.");
+        } finally {
+            setIsExplaining(false);
+        }
+    };
+
     const handleBackToNavigator = () => {
-        // Only strictly necessary if we want to "clear" selection visually on mobile,
-        // but typically we might want to keep the selection state but just show list.
-        // However, for this simple logic, setting to null or handling a view mode state is best.
-        // Let's use a separate state variable for "mobile view mode" if needed, 
-        // or just rely on CSS media queries for layout + conditional rendering for mobile.
-        // Simpler approach: If on mobile (check with CSS hidden), show list.
-        // But React logic is easier: 
-        setSelectedReview(null);
+        setSelectedVersion(null);
+        setComparisonData(null);
+    };
+
+    // Helper to get version label by ID
+    const getVersionLabel = (id: string) => {
+        return versionList.find(v => v.id === id)?.versionLabel || "Unknown";
     };
 
     return (
@@ -111,62 +225,209 @@ export default function History() {
           w-full md:w-1/3 min-w-[300px] max-w-full md:max-w-[400px] 
           bg-bg-secondary border-r border-border flex flex-col 
           absolute md:static top-0 bottom-0 left-0 z-10 transition-transform duration-300
-          ${selectedReview ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
+          ${(selectedVersion || comparisonData) ? '-translate-x-full md:translate-x-0' : 'translate-x-0'}
         `}
             >
-                <div className="p-4 border-b border-border bg-bg-secondary sticky top-0 z-10">
-                    <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
-                        <CodeIcon className="text-accent" />
-                        History
-                    </h2>
-                    <p className="text-text-secondary text-sm mt-1">
-                        Previous analyses
-                    </p>
-                </div>
-                <div className="overflow-y-auto flex-1 p-2 space-y-2 custom-scrollbar">
-                    {MOCK_REVIEWS.map((review) => (
-                        <div
-                            key={review.id}
-                            onClick={() => setSelectedReview(review)}
-                            className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border group ${selectedReview?.id === review.id
-                                ? "bg-accent/10 border-accent shadow-md md:transform md:scale-[1.01]"
-                                : "bg-bg-primary border-border hover:border-text-secondary hover:shadow-sm"
-                                }`}
+                <div className="p-4 border-b border-border bg-bg-secondary sticky top-0 z-10 space-y-3">
+                    <div className="flex items-center justify-between">
+                        <h2 className="text-xl font-bold text-text-primary flex items-center gap-2">
+                            <CodeIcon className="text-accent" />
+                            History
+                        </h2>
+                        {/* Compare Toggle */}
+                        <button
+                            onClick={toggleCompareMode}
+                            className={`p-2 rounded-full transition-colors ${isCompareMode ? 'bg-accent text-white' : 'text-text-secondary hover:text-accent'}`}
+                            title="Compare Versions"
                         >
-                            <div className="flex justify-between items-start mb-2">
-                                <span className="font-semibold text-text-primary truncate">
-                                    {review.fileName}
-                                </span>
-                                <span
-                                    className={`text-xs font-bold px-2 py-0.5 rounded-full ${review.score >= 80
-                                        ? "bg-green-500/20 text-green-500"
-                                        : review.score >= 60
-                                            ? "bg-yellow-500/20 text-yellow-500"
-                                            : "bg-red-500/20 text-red-500"
-                                        }`}
-                                >
-                                    Score: {review.score}
-                                </span>
-                            </div>
-                            <div className="flex justify-between items-end text-text-secondary text-xs">
-                                <span>{review.language}</span>
-                                <span>{format(review.date, "MMM d, HH:mm")}</span>
-                            </div>
+                            <CompareArrowsIcon fontSize="small" />
+                        </button>
+                    </div>
+
+                    {/* Project Selector */}
+                    <select
+                        value={selectedProjectId}
+                        onChange={(e) => setSelectedProjectId(e.target.value)}
+                        className="w-full bg-bg-primary text-text-primary border border-border rounded-lg px-3 py-2 text-sm focus:border-accent outline-none"
+                    >
+                        {projectList.map(p => (
+                            <option key={p.id} value={p.id}>{p.name}</option>
+                        ))}
+                        {projectList.length === 0 && <option disabled>No Projects</option>}
+                    </select>
+
+                    {/* Comparison Action */}
+                    {isCompareMode && (
+                        <div className="bg-bg-primary/50 p-2 rounded-lg border border-border text-center">
+                            <p className="text-xs text-text-secondary mb-2">
+                                Select 2 versions ({selectedForCompare.length}/2)
+                            </p>
+                            <button
+                                onClick={handleCompare}
+                                disabled={selectedForCompare.length !== 2 || isComparing}
+                                className="w-full bg-accent hover:bg-accent/90 disabled:opacity-50 text-white text-xs font-bold py-2 rounded transition-colors"
+                            >
+                                {isComparing ? "Comparing..." : "Run Comparison"}
+                            </button>
                         </div>
-                    ))}
+                    )}
+                </div>
+
+                <div className="overflow-y-auto flex-1 p-2 space-y-2 custom-scrollbar">
+                    {isLoading && <div className="text-center text-text-secondary p-4">Yükleniyor...</div>}
+
+                    {!isLoading && versionList.length === 0 && (
+                        <div className="text-center text-text-secondary p-4 text-sm">
+                            Bu projede henüz analiz yok.
+                        </div>
+                    )}
+
+                    {versionList.map((version) => {
+                        const isSelected = selectedVersion?.id === version.id;
+                        const isChosenForCompare = selectedForCompare.includes(version.id);
+                        const active = isCompareMode ? isChosenForCompare : isSelected;
+
+                        return (
+                            <div
+                                key={version.id}
+                                onClick={() => handleVersionSelect(version)}
+                                className={`p-4 rounded-xl cursor-pointer transition-all duration-200 border group 
+                                    ${active
+                                        ? "bg-accent/10 border-accent shadow-md md:transform md:scale-[1.01]"
+                                        : "bg-bg-primary border-border hover:border-text-secondary hover:shadow-sm"
+                                    }`}
+                            >
+                                <div className="flex justify-between items-start mb-2">
+                                    <div className="flex items-center gap-2 overflow-hidden">
+                                        {isCompareMode && (
+                                            <div className={`w-4 h-4 rounded-full border flex items-center justify-center
+                                                ${isChosenForCompare ? 'border-accent bg-accent' : 'border-text-secondary'}
+                                            `}>
+                                                {isChosenForCompare && <CheckCircleIcon style={{ fontSize: 12 }} className="text-white" />}
+                                            </div>
+                                        )}
+                                        <span className="font-semibold text-text-primary truncate">
+                                            {version.versionLabel}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="flex justify-between items-end text-text-secondary text-xs pl-6">
+                                    <span>{safeFormatDate(version.uploadedAt, "P")}</span>
+                                    <span>{safeFormatDate(version.uploadedAt, "p")}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
                 </div>
             </div>
 
-            {/* Main Content - Detail View */}
+            {/* Main Content */}
             <div
                 className={`
           flex-1 overflow-y-auto bg-bg-primary p-4 md:p-8 custom-scrollbar
           absolute md:static top-0 bottom-0 right-0 left-0 md:left-auto 
           transition-transform duration-300 bg-bg-primary z-20 md:z-auto
-          ${selectedReview ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
+          ${(selectedVersion || comparisonData) ? 'translate-x-0' : 'translate-x-full md:translate-x-0'}
         `}
             >
-                {selectedReview ? (
+                {/* Comparison View */}
+                {comparisonData && (
+                    <div className="max-w-4xl mx-auto space-y-6 pb-20">
+                        {/* Mobile Back Button */}
+                        <div className="md:hidden mb-4">
+                            <button
+                                onClick={handleBackToNavigator}
+                                className="flex items-center text-text-secondary hover:text-text-primary"
+                            >
+                                <ArrowBackIcon className="mr-2" /> Back to Selection
+                            </button>
+                        </div>
+
+                        <header className="border-b border-border/50 pb-4 mb-8">
+                            <div className="flex items-center gap-2 text-accent mb-2">
+                                <CompareArrowsIcon />
+                                <span className="font-bold text-sm tracking-wide uppercase">Comparison Result</span>
+                            </div>
+                            <h1 className="text-2xl font-bold text-text-primary">
+                                Comparison Report
+                            </h1>
+                            <p className="text-text-secondary text-sm mt-1">
+                                Comparing <span className="text-text-primary font-medium">{getVersionLabel(comparisonData.results[0]?.id || selectedForCompare[0])}</span> vs <span className="text-text-primary font-medium">{getVersionLabel(comparisonData.results.length > 0 ? (selectedForCompare.find(id => id !== comparisonData?.results[0]?.id) || selectedForCompare[1]) : selectedForCompare[1])}</span>
+                            </p>
+                            <p className="text-xs text-text-secondary mt-1">
+                                Generated on {safeFormatDate(comparisonData.createdAt, "MMMM d, yyyy")}
+                            </p>
+                        </header>
+
+                        {/* Explanation Section */}
+                        <div className="bg-bg-secondary/50 glass rounded-2xl p-6 border border-glass-border">
+                            <div className="flex items-center justify-between mb-4">
+                                <h3 className="text-text-primary font-bold text-lg flex items-center gap-2">
+                                    <AutoFixHighIcon className="text-accent" /> AI Explanation
+                                </h3>
+                                {!comparisonData.explanation && (
+                                    <button
+                                        onClick={handleGenerateExplanation}
+                                        disabled={isExplaining}
+                                        className="text-xs bg-accent/20 hover:bg-accent/30 text-accent px-3 py-1.5 rounded-full transition-colors font-medium border border-accent/20"
+                                    >
+                                        {isExplaining ? "Generating..." : "Generate Explanation"}
+                                    </button>
+                                )}
+                            </div>
+
+                            {comparisonData.explanation ? (
+                                <p className="text-text-primary leading-relaxed text-sm whitespace-pre-wrap">
+                                    {comparisonData.explanation.explanation}
+                                </p>
+                            ) : (
+                                <p className="text-text-secondary text-sm italic">
+                                    Click generating explanation to get AI insights on the differences.
+                                </p>
+                            )}
+                        </div>
+
+                        {/* Results List */}
+                        <div className="space-y-4">
+                            <h3 className="text-lg font-bold text-text-primary">Detailed Changes</h3>
+                            {comparisonData.results.map((res) => (
+                                <div key={res.id} className="bg-bg-primary/50 p-4 rounded-xl border border-border flex items-center justify-between">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] uppercase font-bold tracking-wider
+                                                ${res.changeType === 'IMPROVED' ? 'bg-green-500/20 text-green-500' :
+                                                    res.changeType === 'WORSENED' ? 'bg-red-500/20 text-red-500' :
+                                                        'bg-gray-500/20 text-gray-500'}
+                                            `}>
+                                                {res.changeType}
+                                            </span>
+                                            <span className="font-mono font-bold text-text-primary text-sm">{res.issueCode}</span>
+                                        </div>
+                                        <div className="text-xs text-text-secondary flex gap-4">
+                                            {res.beforeSeverity && <span>Before: <span className="text-text-primary">{res.beforeSeverity}</span></span>}
+                                            {res.afterSeverity && <span>After: <span className="text-text-primary">{res.afterSeverity}</span></span>}
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        {(res.beforeComplexity && res.afterComplexity && res.beforeComplexity !== res.afterComplexity) && (
+                                            <div className="text-xs text-text-secondary">
+                                                Complexity: <span className="line-through opacity-50">{res.beforeComplexity}</span> → <span className="text-accent font-bold">{res.afterComplexity}</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+                            ))}
+                            {comparisonData.results.length === 0 && (
+                                <div className="text-center p-8 text-text-secondary border border-border dashed rounded-xl">
+                                    No significant changes detected between these versions.
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                )}
+
+                {/* Normal Version Detail View */}
+                {!comparisonData && selectedVersion && selectedVersion.analysis && (
                     <div className="max-w-4xl mx-auto space-y-6 pb-20">
                         {/* Mobile Back Button */}
                         <div className="md:hidden mb-4">
@@ -182,87 +443,86 @@ export default function History() {
                         <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 pb-4 border-b border-border/50">
                             <div>
                                 <h1 className="text-2xl md:text-3xl font-bold text-text-primary mb-2 break-all">
-                                    {selectedReview.fileName}
+                                    {selectedVersion.versionLabel}
                                 </h1>
                                 <p className="text-text-secondary flex items-center gap-2 text-sm">
-                                    <span className="bg-bg-tertiary px-2 py-1 rounded text-xs font-mono">
-                                        {selectedReview.language}
-                                    </span>
-                                    <span>•</span>
-                                    <span>{format(selectedReview.date, "MMMM d, yyyy 'at' HH:mm")}</span>
+                                    <span>{safeFormatDate(selectedVersion.uploadedAt, "MMMM d, yyyy 'at' HH:mm")}</span>
                                 </p>
-                            </div>
-                            <div
-                                className={`flex flex-col items-center justify-center w-16 h-16 md:w-20 md:h-20 rounded-full border-4 shrink-0 self-end md:self-auto ${selectedReview.score >= 80
-                                    ? "border-green-500 text-green-500"
-                                    : selectedReview.score >= 60
-                                        ? "border-yellow-500 text-yellow-500"
-                                        : "border-red-500 text-red-500"
-                                    }`}
-                            >
-                                <span className="text-xl md:text-2xl font-bold">{selectedReview.score}</span>
-                                <span className="text-[8px] md:text-[10px] font-medium uppercase tracking-wider">
-                                    Score
-                                </span>
                             </div>
                         </header>
 
-                        {/* Pros & Cons Section */}
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                            {/* Pros */}
-                            <div className="bg-bg-secondary/50 glass rounded-2xl p-6 border border-glass-border">
-                                <h3 className="text-green-500 font-bold text-lg mb-4 flex items-center gap-2">
-                                    <CheckCircleIcon fontSize="small" /> Pros
-                                </h3>
-                                <ul className="space-y-3">
-                                    {selectedReview.pros.map((pro, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-green-500 mt-2 shrink-0"></span>
-                                            <span className="text-text-primary text-sm leading-relaxed">
-                                                {pro}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
+                        {/* AI Summary */}
+                        <div className="bg-bg-secondary/50 glass rounded-2xl p-6 border border-glass-border">
+                            <h3 className="text-accent font-bold text-lg mb-4">AI Analysis Summary</h3>
+                            <p className="text-text-primary leading-relaxed text-sm whitespace-pre-wrap">
+                                {selectedVersion.analysis.summary}
+                            </p>
+                        </div>
 
-                            {/* Cons */}
+                        {/* Issues List (Cons) */}
+                        {selectedVersion.analysis.issues && selectedVersion.analysis.issues.length > 0 && (
                             <div className="bg-bg-secondary/50 glass rounded-2xl p-6 border border-glass-border">
                                 <h3 className="text-red-500 font-bold text-lg mb-4 flex items-center gap-2">
-                                    <CancelIcon fontSize="small" /> Cons
+                                    <CancelIcon fontSize="small" /> Detected Issues
                                 </h3>
-                                <ul className="space-y-3">
-                                    {selectedReview.cons.map((con, idx) => (
-                                        <li key={idx} className="flex items-start gap-3">
-                                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 mt-2 shrink-0"></span>
-                                            <span className="text-text-primary text-sm leading-relaxed">
-                                                {con}
-                                            </span>
-                                        </li>
-                                    ))}
-                                </ul>
-                            </div>
-                        </div>
+                                <div className="space-y-4">
+                                    {selectedVersion.analysis.issues.map((issue, idx) => (
+                                        <div key={idx} className="bg-bg-primary/50 p-4 rounded-lg border border-border">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <span className="font-mono text-sm text-red-400 font-bold">{issue.issueCode}</span>
+                                                <span className={`text-xs px-2 py-1 rounded capitalize ${issue.severity === 'high' ? 'bg-red-500/20 text-red-500' :
+                                                    issue.severity === 'medium' ? 'bg-yellow-500/20 text-yellow-500' :
+                                                        'bg-blue-500/20 text-blue-500'
+                                                    }`}>
+                                                    {issue.severity}
+                                                </span>
+                                            </div>
+                                            <div className="text-xs text-text-secondary mb-2">
+                                                Complexity: <span className="text-text-primary font-mono">{issue.complexity}</span>
+                                            </div>
 
-                        {/* Code Snippet */}
-                        <div className="mt-8">
-                            <h3 className="text-text-primary font-bold text-lg mb-4 flex items-center gap-2">
-                                <CodeIcon className="text-accent" /> Code Snippet
-                            </h3>
-                            <div className="bg-[#1e1e1e] rounded-xl p-4 overflow-x-auto border border-border shadow-inner">
-                                <pre className="text-sm font-mono text-gray-300">
-                                    <code>{selectedReview.codeSnippet}</code>
-                                </pre>
+                                            {(issue.snippet?.beforeSnippet || issue.beforeSnippet) && (
+                                                <div className="mt-3">
+                                                    <div className="text-xs text-text-secondary mb-1">Problematic Code:</div>
+                                                    <div className="bg-[#1e1e1e] rounded p-2 overflow-x-auto border border-red-500/20">
+                                                        <pre className="text-xs font-mono text-gray-300"><code>{issue.snippet?.beforeSnippet || issue.beforeSnippet}</code></pre>
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {(issue.snippet?.afterSnippet || issue.afterSnippet) && (
+                                                <div className="mt-3">
+                                                    <div className="text-xs text-text-secondary mb-1">Suggested Fix:</div>
+                                                    <div className="bg-[#1e1e1e] rounded p-2 overflow-x-auto border border-green-500/20">
+                                                        <pre className="text-xs font-mono text-green-400"><code>{issue.snippet?.afterSnippet || issue.afterSnippet}</code></pre>
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
                             </div>
-                        </div>
+                        )}
                     </div>
-                ) : (
+                )}
+
+                {/* Empty State */}
+                {!comparisonData && (!selectedVersion || !selectedVersion.analysis) && (
                     <div className="h-full flex flex-col items-center justify-center text-text-secondary opacity-50">
-                        <ArrowForwardIosIcon style={{ fontSize: 64 }} className="mb-4" />
-                        <p className="text-xl font-medium">Select a review to see details</p>
+                        {isLoading ? <p>Yükleniyor...</p> : (
+                            <>
+                                <ArrowForwardIosIcon style={{ fontSize: 64 }} className="mb-4" />
+                                <p className="text-xl font-medium">
+                                    {isCompareMode
+                                        ? "Select 2 versions to start comparison"
+                                        : "Select a version to see details"}
+                                </p>
+                            </>
+                        )}
                     </div>
                 )}
             </div>
         </div>
     );
 }
+

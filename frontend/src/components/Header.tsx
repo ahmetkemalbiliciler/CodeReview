@@ -8,9 +8,11 @@ import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
 import Wrapper from "./common/Wrapper";
 import Logo from "./Logo";
+import { auth } from "../services/api";
 
 export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const navigate = useNavigate();
   const location = useLocation();
@@ -19,6 +21,18 @@ export default function Header() {
     const token = localStorage.getItem("token");
     if (token) {
       setIsLoggedIn(true);
+      // Fetch user details
+      auth.me()
+        .then((data) => {
+          if (data && data.email) {
+            setUserEmail(data.email);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to fetch user info", err);
+          // If auth fails, maybe token is invalid?
+          // optional: handleLogout();
+        });
     }
   }, []);
 
@@ -30,6 +44,7 @@ export default function Header() {
   const handleLogout = () => {
     localStorage.removeItem("token");
     setIsLoggedIn(false);
+    setUserEmail(null);
     navigate("/");
   };
 
@@ -68,7 +83,7 @@ export default function Header() {
                   <div className="flex items-center gap-3">
                     <div className="text-right hidden lg:block">
                       <p className="text-xs text-text-secondary">Logged in as</p>
-                      <p className="text-sm font-medium text-text-primary">User</p>
+                      <p className="text-sm font-medium text-text-primary">{userEmail || "User"}</p>
                     </div>
                     <IconButton
                       className="bg-bg-tertiary hover:bg-accent hover:text-white transition-colors"

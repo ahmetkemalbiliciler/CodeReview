@@ -2,19 +2,43 @@ import { useNavigate } from "react-router-dom";
 import Button from "../components/common/Button";
 import { useState } from "react";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { auth, ApiError } from "../services/api";
 
 export default function Register() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
+    setError(null);
+
+    const form = e.target as HTMLFormElement;
+    const email = (form.elements[0] as HTMLInputElement).value;
+    const password = (form.elements[1] as HTMLInputElement).value;
+    const confirmPassword = (form.elements[2] as HTMLInputElement).value;
+
+    if (password !== confirmPassword) {
+      setError("Parolalar uyuşmuyor.");
       setIsLoading(false);
+      return;
+    }
+
+    try {
+      await auth.register({ email, password });
+      // Show success message or navigate to login
+      alert("Kayıt başarılı! Lütfen e-postanızı kontrol edin.");
       navigate("/login");
-    }, 1500);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Kayıt olurken bir hata oluştu.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -71,6 +95,12 @@ export default function Register() {
                 Hızlıca kayıt olun ve analize başlayın
               </p>
             </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm text-center">
+                {error}
+              </div>
+            )}
 
             <form className="space-y-5" onSubmit={handleSubmit}>
               <div className="space-y-2">

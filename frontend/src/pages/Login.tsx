@@ -2,20 +2,36 @@ import { useNavigate } from "react-router-dom";
 import Button from "../components/common/Button";
 import { useState } from "react";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
+import { auth, ApiError } from "../services/api";
 
 export default function Login() {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      localStorage.setItem("token", "1234567890");
-      setIsLoading(false);
+    setError(null);
+
+    const form = e.target as HTMLFormElement;
+    const email = (form.elements[0] as HTMLInputElement).value;
+    const password = (form.elements[1] as HTMLInputElement).value;
+
+    try {
+      const data = await auth.login({ email, password });
+      localStorage.setItem("token", data.access_token);
+      localStorage.setItem("user", JSON.stringify(data.user)); // Optional: store user info
       navigate("/");
-    }, 1500);
+    } catch (err) {
+      if (err instanceof ApiError) {
+        setError(err.message);
+      } else {
+        setError("Giriş yapılırken bir hata oluştu.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -63,6 +79,12 @@ export default function Login() {
                 Devam etmek için hesabınıza giriş yapın
               </p>
             </div>
+
+            {error && (
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg text-sm text-center">
+                {error}
+              </div>
+            )}
 
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">

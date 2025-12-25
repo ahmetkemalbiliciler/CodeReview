@@ -1,7 +1,12 @@
-import { useState, useRef } from "react";
+import { useRef } from "react";
 
-export default function EditorArea() {
-  const [code, setCode] = useState("");
+interface EditorAreaProps {
+  code: string;
+  onChange?: (code: string) => void;
+  readOnly?: boolean;
+}
+
+export default function EditorArea({ code, onChange, readOnly }: EditorAreaProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumbersRef = useRef<HTMLDivElement>(null);
 
@@ -32,8 +37,9 @@ export default function EditorArea() {
       <textarea
         ref={textareaRef}
         value={code}
+        readOnly={readOnly}
         onScroll={handleScroll}
-        onChange={(e) => setCode(e.target.value)}
+        onChange={(e) => onChange?.(e.target.value)}
         className="flex-1 w-full h-full bg-transparent text-text-primary font-mono text-sm leading-relaxed p-[18px] focus:outline-none resize-none placeholder:text-text-secondary/40 border-none focus:ring-0 overflow-y-auto"
         placeholder={`// Paste your code here to begin analysis...
 
@@ -46,3 +52,4 @@ function optimizeAlgorithm(data) {
     </div>
   );
 }
+
