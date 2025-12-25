@@ -27,7 +27,7 @@ export default function Login() {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Giriş yapılırken bir hata oluştu.");
+        setError("Login failed. Please try again.");
       }
     } finally {
       setIsLoading(false);
@@ -44,23 +44,23 @@ export default function Login() {
       <div className="hidden lg:flex lg:w-1/2 flex-col justify-center px-16 relative z-10">
         <div className="max-w-xl animate-fade-in">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-white to-gray-400 bg-clip-text text-transparent mb-6">
-            Kodunuzun Potansiyelini Keşfedin
+            Discover Your Code's Potential
           </h1>
           <p className="text-lg text-text-secondary leading-relaxed mb-8">
-            Yapay zeka destekli kod inceleme platformumuz ile hataları saniyeler
-            içinde bulun, temiz kod yazın ve projelerinizi bir üst seviyeye taşıyın.
+            Find bugs in seconds with our AI-powered code review platform,
+            write clean code and take your projects to the next level.
           </p>
           <div className="grid grid-cols-2 gap-4">
             <div className="glass p-4 rounded-xl">
-              <h3 className="text-xl font-bold text-accent mb-2">Hızlı</h3>
+              <h3 className="text-xl font-bold text-accent mb-2">Fast</h3>
               <p className="text-sm text-text-secondary">
-                Saniyeler içinde detaylı analiz sonuçlarına ulaşın.
+                Get detailed analysis results in seconds.
               </p>
             </div>
             <div className="glass p-4 rounded-xl">
-              <h3 className="text-xl font-bold text-accent mb-2">Akıllı</h3>
+              <h3 className="text-xl font-bold text-accent mb-2">Smart</h3>
               <p className="text-sm text-text-secondary">
-                Modern best-practice'lere göre kodunuzu optimize edin.
+                Optimize your code according to modern best practices.
               </p>
             </div>
           </div>
@@ -73,10 +73,10 @@ export default function Login() {
           <div className="glass-card p-8 md:p-10 border border-glass-border">
             <div className="text-center mb-10">
               <h2 className="text-3xl font-bold text-text-primary mb-2">
-                Hoş Geldiniz
+                Welcome Back
               </h2>
               <p className="text-text-secondary">
-                Devam etmek için hesabınıza giriş yapın
+                Login to your account to continue
               </p>
             </div>
 
@@ -89,19 +89,19 @@ export default function Login() {
             <form className="space-y-6" onSubmit={handleSubmit}>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text-secondary ml-1">
-                  E-posta Adresi
+                  Email Address
                 </label>
                 <input
                   type="email"
                   className="w-full px-4 py-3 rounded-xl bg-bg-secondary/50 border border-border text-text-primary focus:outline-none focus:ring-2 focus:ring-accent/50 focus:border-accent transition-all placeholder:text-gray-600"
-                  placeholder="ornek@mail.com"
+                  placeholder="name@example.com"
                   required
                 />
               </div>
 
               <div className="space-y-2">
                 <label className="text-sm font-medium text-text-secondary ml-1">
-                  Parola
+                  Password
                 </label>
                 <input
                   type="password"
@@ -117,18 +117,18 @@ export default function Login() {
                     type="checkbox"
                     className="mr-2 rounded border-border bg-bg-secondary cursor-pointer accent-accent"
                   />
-                  Beni Hatırla
+                  Remember Me
                 </label>
                 <a
                   onClick={() => navigate("/forgot-password")}
                   className="text-accent hover:text-accent/80 transition-colors cursor-pointer font-medium"
                 >
-                  Şifremi Unuttum?
+                  Forgot Password?
                 </a>
               </div>
 
               <Button
-                text="Giriş Yap"
+                text="Login"
                 type="submit"
                 variant="primary"
                 size="lg"
@@ -139,12 +139,12 @@ export default function Login() {
             </form>
 
             <div className="mt-8 pt-6 border-t border-border text-center text-sm text-text-secondary flex items-center justify-center gap-2">
-              Hesabınız yok mu?
+              Don't have an account?
               <a
                 onClick={() => navigate("/register")}
                 className="text-accent font-bold hover:underline cursor-pointer"
               >
-                Hemen Kaydolun
+                Sign up now
               </a>
             </div>
           </div>

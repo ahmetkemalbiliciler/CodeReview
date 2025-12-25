@@ -38,7 +38,7 @@ export default function CodeEditor() {
   };
 
   const handleCreateProject = async () => {
-    const name = window.prompt("Proje adı giriniz:");
+    const name = window.prompt("Enter project name:");
     if (!name) return;
 
     try {
@@ -47,7 +47,7 @@ export default function CodeEditor() {
       setProjectList([...projectList, newProject]);
       setSelectedProjectId(newProject.id);
     } catch (err) {
-      alert("Proje oluşturulurken hata oluştu");
+      alert("Error creating project");
     } finally {
       setIsLoading(false);
     }
@@ -61,12 +61,12 @@ export default function CodeEditor() {
     }
 
     if (!selectedProjectId) {
-      alert("Lütfen önce bir proje seçin veya oluşturun.");
+      alert("Please select or create a project first.");
       return;
     }
 
     if (!code.trim()) {
-      alert("Lütfen analiz edilecek kod girin.");
+      alert("Please enter code to analyze.");
       return;
     }
 
@@ -83,14 +83,14 @@ export default function CodeEditor() {
 
       // Navigate to history to see result (or show modal)
       // For now, let's navigate to history which we will update next
-      alert("Analiz tamamlandı! Sonuçlar için Geçmiş sayfasına yönlendiriliyorsunuz.");
+      alert("Analysis complete! Redirecting to History page for results.");
       navigate("/history");
 
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
       } else {
-        setError("Analiz sırasında bir hata oluştu.");
+        setError("An error occurred during analysis.");
       }
     } finally {
       setIsAnalyzing(false);
@@ -102,11 +102,11 @@ export default function CodeEditor() {
       {/* Heading */}
       <div className="flex flex-col gap-3 text-center md:text-left">
         <h1 className="text-white text-4xl md:text-5xl font-black leading-tight tracking-[-0.033em]">
-          Kodunu <span className="text-accent">anında</span> analiz et
+          Analyze your code <span className="text-accent">instantly</span>
         </h1>
         <p className="text-text-secondary text-base md:text-lg font-normal leading-normal max-w-2xl">
-          Kodunu aşağıya yapıştır. Yapay zekamız hataları, güvenlik açıklarını ve
-          performans iyileştirmelerini saniyeler içinde tespit etsin.
+          Paste your code below. Artificial intelligence will detect bugs, security vulnerabilities
+          and performance improvements in seconds.
         </p>
       </div>
 
@@ -135,13 +135,13 @@ export default function CodeEditor() {
 
             {/* Project Selector */}
             <div className="flex items-center gap-2">
-              <span className="text-xs text-text-secondary">Proje:</span>
+              <span className="text-xs text-text-secondary">Project:</span>
               <select
                 value={selectedProjectId}
                 onChange={(e) => setSelectedProjectId(e.target.value)}
                 className="bg-bg-primary/50 text-text-primary text-xs rounded border border-white/10 px-2 py-1 outline-none focus:border-accent hover:bg-bg-primary/80 transition-colors"
               >
-                <option value="" disabled>Seçiniz</option>
+                <option value="" disabled>Select</option>
                 {projectList.map(p => (
                   <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
@@ -151,7 +151,7 @@ export default function CodeEditor() {
                 className="text-accent hover:text-white text-xs font-bold px-2 transition-colors"
                 disabled={isLoading}
               >
-                + Yeni
+                + New
               </button>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function CodeEditor() {
               <span className="material-symbols-outlined text-[16px]!">
                 content_copy
               </span>
-              <span className="hidden sm:inline">Kopyala</span>
+              <span className="hidden sm:inline">Copy</span>
             </span>
           </div>
         </div>
@@ -196,15 +196,15 @@ export default function CodeEditor() {
             </span>
           </div>
           <span className="text-white text-lg font-bold leading-normal tracking-[0.015em]">
-            {isAnalyzing ? "Analiz Ediliyor..." : "İnceleme için Gönder"}
+            {isAnalyzing ? "Analyzing..." : "Submit for Review"}
           </span>
         </button>
         <p className="text-xs text-text-secondary font-medium">
-          Göndererek,{" "}
+          By submitting, you agree to our{" "}
           <a className="underline hover:text-white transition-colors" href="#">
-            Gizlilik Politikamızı
+            Privacy Policy
           </a>{" "}
-          kabul etmiş olursunuz.
+          .
         </p>
       </div>
     </div>
