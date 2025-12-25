@@ -1,8 +1,13 @@
 const API_BASE = "http://localhost:3000/api";
 
 export class ApiError extends Error {
-    constructor(public message: string, public status?: number) {
+    public message: string;
+    public status?: number;
+
+    constructor(message: string, status?: number) {
         super(message);
+        this.message = message;
+        this.status = status;
         this.name = "ApiError";
     }
 }
