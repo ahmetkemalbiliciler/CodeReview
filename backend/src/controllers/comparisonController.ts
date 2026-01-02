@@ -8,6 +8,7 @@ import { aiExplanationService } from "../services/aiExplanationService.js";
 
 /**
  * Compare two code versions (deterministic comparison)
+ * Returns cached comparison if exists, otherwise creates new
  * POST /projects/:projectId/compare
  */
 export async function compareVersions(
@@ -69,6 +70,22 @@ export async function compareVersions(
       return;
     }
 
+    // Check if comparison already exists (cache)
+    const existingComparison = await comparisonService.findExisting(
+      fromAnalysis.id,
+      toAnalysis.id
+    );
+
+    if (existingComparison) {
+      // Return cached comparison
+      res.status(200).json({ 
+        success: true, 
+        data: existingComparison,
+        cached: true 
+      });
+      return;
+    }
+
     // Run DETERMINISTIC comparison (AI is NOT involved)
     const comparison = await comparisonService.compareAnalyses(
       projectId,
@@ -76,10 +93,37 @@ export async function compareVersions(
       toAnalysis.id
     );
 
-    res.status(201).json({ success: true, data: comparison });
+    res.status(201).json({ success: true, data: comparison, cached: false });
   } catch (error) {
     console.error("Error comparing versions:", error);
     res.status(500).json({ success: false, error: "Failed to compare versions" });
+  }
+}
+
+/**
+ * List all comparisons for a project
+ * GET /comparisons/project/:projectId
+ */
+export async function listComparisons(
+  req: AuthenticatedRequest,
+  res: Response
+): Promise<void> {
+  try {
+    const projectId = req.params.projectId as string;
+
+    // Verify project ownership
+    const project = await projectService.findById(projectId, req.userId!);
+    if (!project) {
+      res.status(404).json({ success: false, error: "Project not found" });
+      return;
+    }
+
+    const comparisons = await comparisonService.findByProject(projectId);
+
+    res.json({ success: true, data: comparisons });
+  } catch (error) {
+    console.error("Error listing comparisons:", error);
+    res.status(500).json({ success: false, error: "Failed to list comparisons" });
   }
 }
 

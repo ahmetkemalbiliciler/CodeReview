@@ -122,6 +122,37 @@ export const comparisonService = {
 
     return comparison && comparison.project.ownerId === ownerId ? comparison : null;
   },
+
+  /**
+   * Find existing comparison by fromAnalysisId and toAnalysisId
+   * Used for caching - if comparison exists, return it instead of creating new
+   */
+  async findExisting(fromAnalysisId: string, toAnalysisId: string) {
+    return prisma.comparison.findFirst({
+      where: {
+        fromAnalysisId,
+        toAnalysisId,
+      },
+      include: {
+        results: true,
+        explanation: true,
+      },
+    });
+  },
+
+  /**
+   * Get all comparisons for a project
+   */
+  async findByProject(projectId: string) {
+    return prisma.comparison.findMany({
+      where: { projectId },
+      include: {
+        results: true,
+        explanation: true,
+      },
+      orderBy: { createdAt: "desc" },
+    });
+  },
 };
 
 /**
