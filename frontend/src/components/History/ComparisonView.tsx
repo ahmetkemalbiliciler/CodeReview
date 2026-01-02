@@ -2,6 +2,8 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import AutoFixHighIcon from "@mui/icons-material/AutoFixHigh";
+import ReactMarkdown from "react-markdown";
+import remarkGfm from "remark-gfm";
 import type { Comparison } from "./types";
 
 interface ComparisonViewProps {
@@ -69,10 +71,10 @@ export default function ComparisonView({
                 </div>
 
                 {comparisonData.explanation ? (
-                    <div className="prose prose-invert max-w-none animate-fade-in">
-                        <p className="text-text-primary/90 leading-relaxed whitespace-pre-wrap text-base">
+                    <div className="prose prose-invert max-w-none animate-fade-in prose-p:text-text-primary/90 prose-p:leading-relaxed prose-headings:text-text-primary prose-li:text-text-primary/90">
+                        <ReactMarkdown remarkPlugins={[remarkGfm]}>
                             {comparisonData.explanation.explanation}
-                        </p>
+                        </ReactMarkdown>
                     </div>
                 ) : (
                     <div className="text-center py-8 text-text-secondary/70">
