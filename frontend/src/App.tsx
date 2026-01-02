@@ -1,5 +1,5 @@
 import "./App.css";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { HashRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
@@ -13,7 +13,7 @@ import Toast from "./components/common/Toast";
 
 function App() {
   return (
-    <BrowserRouter>
+    <Router>
       <Toast />
       <Routes>
         <Route element={<Header />}>
@@ -32,7 +32,7 @@ function App() {
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/reset-password" element={<ResetPassword />} />
       </Routes>
-    </BrowserRouter>
+    </Router>
   );
 }
 
