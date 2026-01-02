@@ -19,9 +19,8 @@ export default function Login() {
     const password = (form.elements[1] as HTMLInputElement).value;
 
     try {
-      const data = await auth.login({ email, password });
-      localStorage.setItem("token", data.access_token);
-      localStorage.setItem("user", JSON.stringify(data.user)); // Optional: store user info
+      await auth.login({ email, password });
+      // Token storage is now handled by auth.login
       navigate("/");
     } catch (err) {
       if (err instanceof ApiError) {
