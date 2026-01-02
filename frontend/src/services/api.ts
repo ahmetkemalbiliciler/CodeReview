@@ -55,6 +55,13 @@ export const auth = {
         method: "POST",
         body: JSON.stringify(data),
     }),
+    resetPassword: (password: string, token: string) => apiCall<any>("/auth/reset-password", {
+        method: "POST",
+        headers: {
+            "Authorization": `Bearer ${token}`,
+        },
+        body: JSON.stringify({ newPassword: password }),
+    }),
     me: () => apiCall<any>("/auth/me"),
 };
 
