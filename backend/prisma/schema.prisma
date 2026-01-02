@@ -25,7 +25,7 @@ model Project {
   description String?
   createdAt   DateTime @default(now())
 
-  owner       User          @relation(fields: [ownerId], references: [id])
+  owner       User          @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   versions    CodeVersion[]
   comparisons Comparison[]
 }
@@ -36,7 +36,7 @@ model CodeVersion {
   versionLabel String?
   uploadedAt   DateTime @default(now())
 
-  project  Project         @relation(fields: [projectId], references: [id])
+  project  Project         @relation(fields: [projectId], references: [id], onDelete: Cascade)
   analysis AnalysisResult?
 }
 
@@ -46,7 +46,7 @@ model AnalysisResult {
   summary       String
   createdAt     DateTime @default(now())
 
-  codeVersion CodeVersion     @relation(fields: [codeVersionId], references: [id])
+  codeVersion CodeVersion     @relation(fields: [codeVersionId], references: [id], onDelete: Cascade)
   issues      AnalysisIssue[]
 }
 
@@ -62,7 +62,7 @@ model AnalysisIssue {
   startLine    Int?
   endLine      Int?
 
-  analysis AnalysisResult @relation(fields: [analysisId], references: [id])
+  analysis AnalysisResult @relation(fields: [analysisId], references: [id], onDelete: Cascade)
   snippet  IssueSnippet?
 }
 
@@ -73,7 +73,7 @@ model IssueSnippet {
   beforeSnippet String?
   afterSnippet  String?
 
-  issue AnalysisIssue @relation(fields: [analysisIssueId], references: [id])
+  issue AnalysisIssue @relation(fields: [analysisIssueId], references: [id], onDelete: Cascade)
 }
 
 model Comparison {
@@ -83,7 +83,7 @@ model Comparison {
   toAnalysisId   String   @db.Uuid
   createdAt      DateTime @default(now())
 
-  project     Project            @relation(fields: [projectId], references: [id])
+  project     Project            @relation(fields: [projectId], references: [id], onDelete: Cascade)
   results     ComparisonResult[]
   explanation AIExplanation?
 }
@@ -101,7 +101,7 @@ model ComparisonResult {
   afterSeverity   Severity?
   afterComplexity Complexity?
 
-  comparison Comparison @relation(fields: [comparisonId], references: [id])
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
 }
 
 model AIExplanation {
@@ -110,7 +110,7 @@ model AIExplanation {
   explanation  String
   createdAt    DateTime @default(now())
 
-  comparison Comparison @relation(fields: [comparisonId], references: [id])
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
 }
 
 enum Severity {
