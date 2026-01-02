@@ -177,30 +177,38 @@ export default function Header() {
             {isLoggedIn ? (
               <>
                 <Button
-                  text="Review History"
+                  text="Dashboard"
+                  variant="ghost"
+                  className="w-full justify-start"
+                  onClick={() => navigate("/dashboard")}
+                  icon={<span className="material-symbols-outlined text-lg">dashboard</span>}
+                />
+                <Button
+                  text="History"
                   variant="ghost"
                   className="w-full justify-start"
                   onClick={() => navigate("/history")}
                   icon={<HistoryIcon />}
                 />
+                <div className="border-t border-border my-2" />
                 <Button
                   text="Logout"
                   variant="secondary"
                   className="w-full justify-start text-red-400 hover:text-red-500"
                   onClick={handleLogout}
-                  icon={<PersonIcon />}
+                  icon={<LogoutIcon />}
                 />
               </>
             ) : (
               <>
                 <Button
-                  text="Giriş Yap"
+                  text="Login"
                   variant="secondary"
                   className="w-full"
                   onClick={() => navigate("/login")}
                 />
                 <Button
-                  text="Kayıt Ol"
+                  text="Sign Up"
                   variant="primary"
                   className="w-full"
                   onClick={() => navigate("/register")}
