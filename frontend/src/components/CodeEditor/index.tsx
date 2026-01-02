@@ -3,6 +3,7 @@ import EditorArea from "./EditorArea";
 import { projects, versions, ApiError } from "../../services/api";
 import { useNavigate } from "react-router-dom";
 import Modal from "../common/Modal";
+import { toast } from "react-toastify";
 
 interface Project {
   id: string;
@@ -15,7 +16,9 @@ export default function CodeEditor() {
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
   const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [isNameVersionModalOpen, setIsNameVersionModalOpen] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [versionName, setVersionName] = useState("");
   const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
@@ -54,14 +57,15 @@ export default function CodeEditor() {
       setProjectList([...projectList, newProject]);
       setSelectedProjectId(newProject.id);
       setIsCreateProjectModalOpen(false);
+      toast.success("Project created successfully!");
     } catch (err) {
-      alert("Error creating project");
+      toast.error("Error creating project");
     } finally {
       setIsCreatingProject(false);
     }
   };
 
-  const handleAnalyze = async () => {
+  const handleAnalyze = () => {
     const token = localStorage.getItem("token");
     if (!token) {
       navigate("/login");
@@ -69,30 +73,35 @@ export default function CodeEditor() {
     }
 
     if (!selectedProjectId) {
-      alert("Please select or create a project first.");
+      toast.warn("Please select or create a project first.");
       return;
     }
 
     if (!code.trim()) {
-      alert("Please enter code to analyze.");
+      toast.warn("Please enter code to analyze.");
       return;
     }
 
+    setVersionName("");
+    setIsNameVersionModalOpen(true);
+  };
+
+  const confirmAnalysis = async (useDefaultName: boolean = false) => {
     try {
       setIsAnalyzing(true);
       setError(null);
-      // Upload version and trigger analysis
-      // Label generation: simpler for now, just timestamp
-      const versionLabel = `${code.slice(0, 20)}...`;
+      setIsNameVersionModalOpen(false);
+
+      const finalVersionName = useDefaultName || !versionName.trim()
+        ? `${code.slice(0, 20)}...`
+        : versionName.trim();
+
       await versions.create(selectedProjectId, {
-        versionLabel,
+        versionLabel: finalVersionName,
         sourceCode: code,
       });
 
-      // Navigate to history to see result (or show modal)
-      // For now, let's navigate to history which we will update next
       navigate("/history");
-
     } catch (err) {
       if (err instanceof ApiError) {
         setError(err.message);
@@ -254,6 +263,45 @@ export default function CodeEditor() {
               className="bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-5 py-2 rounded-lg shadow-lg shadow-accent/20 transition-all"
             >
               {isCreatingProject ? "Creating..." : "Create Project"}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      <Modal
+        isOpen={isNameVersionModalOpen}
+        onClose={() => setIsNameVersionModalOpen(false)}
+        title="Name this version"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-text-secondary font-medium ml-1">Version Name</label>
+            <input
+              type="text"
+              value={versionName}
+              onChange={(e) => setVersionName(e.target.value)}
+              placeholder="e.g. Initial implementation, Bug fix etc."
+              className="w-full bg-black/20 text-text-primary text-sm rounded-xl border border-white/10 px-4 py-3 outline-none focus:border-accent focus:bg-black/30 transition-all placeholder:text-text-secondary/50"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && versionName.trim() && confirmAnalysis()}
+            />
+            <p className="text-[10px] text-text-secondary ml-1 mt-1">
+              Give your version a name or skip to use a default one.
+            </p>
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <button
+              onClick={() => confirmAnalysis(true)}
+              className="px-4 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+            >
+              Skip & Use Default
+            </button>
+            <button
+              onClick={() => confirmAnalysis()}
+              disabled={isAnalyzing || !versionName.trim()}
+              className="bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-5 py-2 rounded-lg shadow-lg shadow-accent/20 transition-all"
+            >
+              {isAnalyzing ? "Analyzing..." : "Analyze Now"}
             </button>
           </div>
         </div>

@@ -5,6 +5,7 @@ import ComparisonView from "../components/History/ComparisonView";
 import AnalysisView from "../components/History/AnalysisView";
 import EmptyState from "../components/History/EmptyState";
 import type { Project, Version, Comparison } from "../components/History/types";
+import { toast } from "react-toastify";
 
 export default function History() {
     const [projectList, setProjectList] = useState<Project[]>([]);
@@ -60,7 +61,7 @@ export default function History() {
                 } else {
                     // Replace the oldest selection or just alert?
                     // Let's just prevent > 2
-                    alert("You can only compare 2 versions at a time.");
+                    toast.warn("You can only compare 2 versions at a time.");
                 }
             }
             return;
@@ -114,7 +115,7 @@ export default function History() {
             setComparisonData(result);
         } catch (error) {
             console.error(error);
-            alert("Comparison failed. Ensure both versions have been analyzed.");
+            toast.error("Comparison failed. Ensure both versions have been analyzed.");
         } finally {
             setIsComparing(false);
         }
@@ -128,7 +129,7 @@ export default function History() {
             setComparisonData(prev => prev ? { ...prev, explanation } : null);
         } catch (error) {
             console.error(error);
-            alert("Failed to generate explanation.");
+            toast.error("Failed to generate explanation.");
         } finally {
             setIsExplaining(false);
         }

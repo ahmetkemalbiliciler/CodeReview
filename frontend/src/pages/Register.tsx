@@ -3,6 +3,7 @@ import Button from "../components/common/Button";
 import { useState } from "react";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import { auth, ApiError } from "../services/api";
+import { toast } from "react-toastify";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -28,7 +29,7 @@ export default function Register() {
     try {
       await auth.register({ email, password });
       // Show success message or navigate to login
-      alert("Registration successful! Please check your email.");
+      toast.success("Registration successful! Please check your email.");
       navigate("/login");
     } catch (err) {
       if (err instanceof ApiError) {

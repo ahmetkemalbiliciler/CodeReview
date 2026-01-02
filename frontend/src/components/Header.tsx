@@ -1,19 +1,24 @@
 import { useNavigate, Outlet, useLocation } from "react-router-dom";
 import Button from "./common/Button";
 import { useState, useEffect } from "react";
-import { IconButton } from "@mui/material";
+import { IconButton, Menu, MenuItem, ListItemIcon, ListItemText } from "@mui/material";
 import PersonIcon from "@mui/icons-material/Person";
 import HistoryIcon from "@mui/icons-material/History";
 import MenuIcon from "@mui/icons-material/Menu";
 import CloseIcon from "@mui/icons-material/Close";
+import LogoutIcon from "@mui/icons-material/Logout";
 import Wrapper from "./common/Wrapper";
 import Logo from "./Logo";
 import { auth } from "../services/api";
+import { toast } from "react-toastify";
 
 export default function Header() {
   const [isLoggedIn, setIsLoggedIn] = useState(false);
   const [userEmail, setUserEmail] = useState<string | null>(null);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
+  const open = Boolean(anchorEl);
+
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -41,10 +46,20 @@ export default function Header() {
     setIsMenuOpen(false);
   }, [location]);
 
+  const handleMenuOpen = (event: React.MouseEvent<HTMLButtonElement>) => {
+    setAnchorEl(event.currentTarget);
+  };
+
+  const handleMenuClose = () => {
+    setAnchorEl(null);
+  };
+
   const handleLogout = () => {
+    handleMenuClose();
     localStorage.removeItem("token");
     setIsLoggedIn(false);
     setUserEmail(null);
+    toast.info("Logged out successfully");
     navigate("/");
   };
 
@@ -87,10 +102,41 @@ export default function Header() {
                     </div>
                     <IconButton
                       className="bg-bg-tertiary hover:bg-accent hover:text-white transition-colors"
-                      onClick={handleLogout}
+                      onClick={handleMenuOpen}
                     >
                       <PersonIcon />
                     </IconButton>
+                    <Menu
+                      anchorEl={anchorEl}
+                      open={open}
+                      onClose={handleMenuClose}
+                      onClick={handleMenuClose}
+                      transformOrigin={{ horizontal: 'right', vertical: 'top' }}
+                      anchorOrigin={{ horizontal: 'right', vertical: 'bottom' }}
+                      PaperProps={{
+                        elevation: 0,
+                        sx: {
+                          overflow: 'visible',
+                          filter: 'drop-shadow(0px 2px 8px rgba(0,0,0,0.32))',
+                          mt: 1.5,
+                          bgcolor: 'var(--bg-secondary)',
+                          color: 'var(--text-primary)',
+                          border: '1px solid var(--border)',
+                          '& .MuiMenuItem-root': {
+                            '&:hover': {
+                              bgcolor: 'var(--bg-tertiary)',
+                            },
+                          },
+                        },
+                      }}
+                    >
+                      <MenuItem onClick={handleLogout}>
+                        <ListItemIcon>
+                          <LogoutIcon fontSize="small" sx={{ color: 'var(--text-secondary)' }} />
+                        </ListItemIcon>
+                        <ListItemText primary="Logout" />
+                      </MenuItem>
+                    </Menu>
                   </div>
                 </>
               ) : (
