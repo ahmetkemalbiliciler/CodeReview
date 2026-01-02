@@ -14,7 +14,7 @@ export default function Home() {
             <a className="hover:text-accent transition-colors cursor-pointer">Support</a>
           </div>
           <p className="text-xs text-border">
-            © 2024 CodeScan AI Inc. All rights reserved.
+            © 2025 KodumunHatası AI Inc. All rights reserved.
           </p>
         </div>
       </footer>

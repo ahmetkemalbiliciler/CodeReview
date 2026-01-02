@@ -36,4 +36,4 @@ dist-ssr
 
 # Vite cache
 .vite
-
+*.md

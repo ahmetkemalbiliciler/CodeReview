@@ -186,12 +186,26 @@ export default function CodeEditor() {
               Auto-detect
             </span>
             <span className="w-px h-3 bg-white/10 hidden sm:block"></span>
-            <span className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors opacity-70 hover:opacity-100">
+            <button
+              onClick={async () => {
+                try {
+                  const text = await navigator.clipboard.readText();
+                  if (text) {
+                    setCode(text);
+                    toast.success("Code pasted from clipboard!");
+                  }
+                } catch {
+                  toast.error("Failed to read clipboard. Please allow clipboard access.");
+                }
+              }}
+              className="flex items-center gap-1 cursor-pointer hover:text-white transition-colors opacity-70 hover:opacity-100"
+              title="Paste from clipboard"
+            >
               <span className="material-symbols-outlined text-[16px]!">
-                content_copy
+                content_paste
               </span>
-              <span className="hidden sm:inline">Copy</span>
-            </span>
+              <span className="hidden sm:inline">paste</span>
+            </button>
           </div>
         </div>
 
