@@ -1,5 +1,4 @@
 import { useState, useEffect } from "react";
-import LanguageSelector from "./LanguageSelector";
 import EditorArea from "./EditorArea";
 import { projects, versions, ApiError } from "../../services/api";
 import { useNavigate } from "react-router-dom";
@@ -139,10 +138,9 @@ export default function CodeEditor() {
             <div className="hidden sm:block w-px h-4 bg-white/10"></div>
 
             {/* Language Selector */}
-            <LanguageSelector />
 
             {/* Project Selector */}
-            <div className="flex items-center gap-2 pl-2 sm:pl-4 sm:border-l sm:border-white/10">
+            <div className="flex items-center gap-2 ">
               <div className="relative group">
                 <select
                   value={selectedProjectId}
