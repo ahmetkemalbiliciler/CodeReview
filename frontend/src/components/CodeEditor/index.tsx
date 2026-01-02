@@ -3,6 +3,7 @@ import LanguageSelector from "./LanguageSelector";
 import EditorArea from "./EditorArea";
 import { projects, versions, ApiError } from "../../services/api";
 import { useNavigate } from "react-router-dom";
+import Modal from "../common/Modal";
 
 interface Project {
   id: string;
@@ -14,6 +15,9 @@ export default function CodeEditor() {
   const [code, setCode] = useState("");
   const [projectList, setProjectList] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string>("");
+  const [isCreateProjectModalOpen, setIsCreateProjectModalOpen] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
+  const [isCreatingProject, setIsCreatingProject] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -37,19 +41,24 @@ export default function CodeEditor() {
     }
   };
 
-  const handleCreateProject = async () => {
-    const name = window.prompt("Enter project name:");
-    if (!name) return;
+  const handleCreateProject = () => {
+    setNewProjectName("");
+    setIsCreateProjectModalOpen(true);
+  };
+
+  const submitCreateProject = async () => {
+    if (!newProjectName.trim()) return;
 
     try {
-      setIsLoading(true);
-      const newProject = await projects.create({ name });
+      setIsCreatingProject(true);
+      const newProject = await projects.create({ name: newProjectName });
       setProjectList([...projectList, newProject]);
       setSelectedProjectId(newProject.id);
+      setIsCreateProjectModalOpen(false);
     } catch (err) {
       alert("Error creating project");
     } finally {
-      setIsLoading(false);
+      setIsCreatingProject(false);
     }
   };
 
@@ -75,7 +84,7 @@ export default function CodeEditor() {
       setError(null);
       // Upload version and trigger analysis
       // Label generation: simpler for now, just timestamp
-      const versionLabel = `v-${new Date().toISOString().slice(0, 19)}`;
+      const versionLabel = `${code.slice(0, 20)}...`;
       await versions.create(selectedProjectId, {
         versionLabel,
         sourceCode: code,
@@ -83,7 +92,6 @@ export default function CodeEditor() {
 
       // Navigate to history to see result (or show modal)
       // For now, let's navigate to history which we will update next
-      alert("Analysis complete! Redirecting to History page for results.");
       navigate("/history");
 
     } catch (err) {
@@ -134,24 +142,33 @@ export default function CodeEditor() {
             <LanguageSelector />
 
             {/* Project Selector */}
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-text-secondary">Project:</span>
-              <select
-                value={selectedProjectId}
-                onChange={(e) => setSelectedProjectId(e.target.value)}
-                className="bg-bg-primary/50 text-text-primary text-xs rounded border border-white/10 px-2 py-1 outline-none focus:border-accent hover:bg-bg-primary/80 transition-colors"
-              >
-                <option value="" disabled>Select</option>
-                {projectList.map(p => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
-                ))}
-              </select>
+            <div className="flex items-center gap-2 pl-2 sm:pl-4 sm:border-l sm:border-white/10">
+              <div className="relative group">
+                <select
+                  value={selectedProjectId}
+                  onChange={(e) => setSelectedProjectId(e.target.value)}
+                  className="appearance-none bg-white/5 hover:bg-white/10 text-text-primary text-xs font-medium rounded-lg border border-white/10 pl-8 pr-8 py-1.5 outline-none focus:border-accent/50 focus:bg-white/10 transition-all cursor-pointer min-w-[140px]"
+                >
+                  <option value="" disabled className="bg-bg-secondary text-text-secondary">Select Project</option>
+                  {projectList.map(p => (
+                    <option key={p.id} value={p.id} className="bg-bg-secondary text-text-primary">{p.name}</option>
+                  ))}
+                </select>
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px]! text-accent opacity-80 pointer-events-none">
+                  folder_open
+                </span>
+                <span className="absolute right-2 top-1/2 -translate-y-1/2 material-symbols-outlined text-[16px]! text-text-secondary pointer-events-none group-hover:text-text-primary transition-colors opacity-70">
+                  expand_more
+                </span>
+              </div>
+
               <button
                 onClick={handleCreateProject}
-                className="text-accent hover:text-white text-xs font-bold px-2 transition-colors"
+                className="flex items-center justify-center w-7 h-7 rounded-lg bg-accent/10 border border-accent/20 text-accent hover:bg-accent hover:text-white hover:shadow-[0_0_10px_rgba(139,92,246,0.3)] transition-all duration-300"
                 disabled={isLoading}
+                title="Create New Project"
               >
-                + New
+                <span className="material-symbols-outlined text-[18px]!">add</span>
               </button>
             </div>
           </div>
@@ -207,6 +224,42 @@ export default function CodeEditor() {
           .
         </p>
       </div>
+
+      <Modal
+        isOpen={isCreateProjectModalOpen}
+        onClose={() => setIsCreateProjectModalOpen(false)}
+        title="Create New Project"
+      >
+        <div className="flex flex-col gap-4">
+          <div className="space-y-1">
+            <label className="text-xs text-text-secondary font-medium ml-1">Project Name</label>
+            <input
+              type="text"
+              value={newProjectName}
+              onChange={(e) => setNewProjectName(e.target.value)}
+              placeholder="e.g. My Awesome Project"
+              className="w-full bg-black/20 text-text-primary text-sm rounded-xl border border-white/10 px-4 py-3 outline-none focus:border-accent focus:bg-black/30 transition-all placeholder:text-text-secondary/50"
+              autoFocus
+              onKeyDown={(e) => e.key === 'Enter' && submitCreateProject()}
+            />
+          </div>
+          <div className="flex justify-end gap-3 mt-2">
+            <button
+              onClick={() => setIsCreateProjectModalOpen(false)}
+              className="px-4 py-2 rounded-lg text-text-secondary hover:text-white hover:bg-white/5 transition-colors text-sm font-medium"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={submitCreateProject}
+              disabled={isCreatingProject || !newProjectName.trim()}
+              className="bg-accent hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-bold px-5 py-2 rounded-lg shadow-lg shadow-accent/20 transition-all"
+            >
+              {isCreatingProject ? "Creating..." : "Create Project"}
+            </button>
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 }
