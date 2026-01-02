@@ -83,6 +83,11 @@ export const versions = {
         }),
     list: (projectId: string) => apiCall<any[]>(`/versions/project/${projectId}`),
     get: (id: string) => apiCall<any>(`/versions/${id}`),
+    delete: (id: string) => apiCall<any>(`/versions/${id}`, { method: "DELETE" }),
+    update: (id: string, data: { versionLabel: string }) => apiCall<any>(`/versions/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(data),
+    }),
 };
 
 export const analyses = {

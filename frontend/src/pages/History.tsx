@@ -16,6 +16,7 @@ export default function History() {
 
     // Comparison State
     const [isCompareMode, setIsCompareMode] = useState(false);
+    const [isEditMode, setIsEditMode] = useState(false);
     const [selectedForCompare, setSelectedForCompare] = useState<string[]>([]);
     const [isComparing, setIsComparing] = useState(false);
     const [comparisonData, setComparisonData] = useState<Comparison | null>(null);
@@ -84,10 +85,45 @@ export default function History() {
 
     const toggleCompareMode = () => {
         setIsCompareMode(!isCompareMode);
+        setIsEditMode(false);
         setSelectedForCompare([]);
         setComparisonData(null);
         if (!isCompareMode) {
             setSelectedVersion(null);
+        }
+    };
+
+    const toggleEditMode = () => {
+        setIsEditMode(!isEditMode);
+        setIsCompareMode(false);
+        setSelectedForCompare([]);
+        setComparisonData(null);
+    };
+
+    const handleVersionDelete = async (id: string) => {
+        if (!window.confirm("Are you sure you want to delete this version?")) return;
+        try {
+            await versions.delete(id);
+            setVersionList(prev => prev.filter(v => v.id !== id));
+            if (selectedVersion?.id === id) setSelectedVersion(null);
+            toast.success("Version deleted successfully");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to delete version");
+        }
+    };
+
+    const handleVersionUpdate = async (id: string, newLabel: string) => {
+        try {
+            await versions.update(id, { versionLabel: newLabel });
+            setVersionList(prev => prev.map(v => v.id === id ? { ...v, versionLabel: newLabel } : v));
+            if (selectedVersion?.id === id) {
+                setSelectedVersion(prev => prev ? { ...prev, versionLabel: newLabel } : null);
+            }
+            toast.success("Version updated successfully");
+        } catch (error) {
+            console.error(error);
+            toast.error("Failed to update version");
         }
     };
 
@@ -161,6 +197,10 @@ export default function History() {
                 onVersionSelect={handleVersionSelect}
                 isCompareMode={isCompareMode}
                 onToggleCompareMode={toggleCompareMode}
+                isEditMode={isEditMode}
+                onToggleEditMode={toggleEditMode}
+                onVersionDelete={handleVersionDelete}
+                onVersionUpdate={handleVersionUpdate}
                 selectedForCompare={selectedForCompare}
                 onCompare={handleCompare}
                 isComparing={isComparing}

@@ -2,6 +2,11 @@ import CodeIcon from "@mui/icons-material/Code";
 import ArrowForwardIosIcon from "@mui/icons-material/ArrowForwardIos";
 import CompareArrowsIcon from "@mui/icons-material/CompareArrows";
 import CheckCircleIcon from "@mui/icons-material/CheckCircle";
+import EditIcon from "@mui/icons-material/Edit";
+import DeleteIcon from "@mui/icons-material/Delete";
+import CheckIcon from "@mui/icons-material/Check";
+import CloseIcon from "@mui/icons-material/Close";
+import { useState } from "react";
 import type { Project, Version } from "./types";
 import { safeFormatDate } from "./utils";
 
@@ -14,6 +19,10 @@ interface SidebarProps {
     onVersionSelect: (version: Version) => void;
     isCompareMode: boolean;
     onToggleCompareMode: () => void;
+    isEditMode: boolean;
+    onToggleEditMode: () => void;
+    onVersionDelete: (id: string) => void;
+    onVersionUpdate: (id: string, newLabel: string) => void;
     selectedForCompare: string[];
     onCompare: () => void;
     isComparing: boolean;
@@ -29,11 +38,43 @@ export default function Sidebar({
     onVersionSelect,
     isCompareMode,
     onToggleCompareMode,
+    isEditMode,
+    onToggleEditMode,
+    onVersionDelete,
+    onVersionUpdate,
     selectedForCompare,
     onCompare,
     isComparing,
     isLoading
 }: SidebarProps) {
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editValue, setEditValue] = useState("");
+
+    const startEditing = (e: React.MouseEvent, version: Version) => {
+        e.stopPropagation();
+        setEditingId(version.id);
+        setEditValue(version.versionLabel);
+    };
+
+    const cancelEditing = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        setEditingId(null);
+        setEditValue("");
+    };
+
+    const saveEditing = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        if (editValue.trim()) {
+            onVersionUpdate(id, editValue.trim());
+        }
+        setEditingId(null);
+    };
+
+    const handleDelete = (e: React.MouseEvent, id: string) => {
+        e.stopPropagation();
+        onVersionDelete(id);
+    };
+
     return (
         <div
             className={`
@@ -49,14 +90,24 @@ export default function Sidebar({
                         <CodeIcon className="text-accent" />
                         History
                     </h2>
-                    {/* Compare Toggle */}
-                    <button
-                        onClick={onToggleCompareMode}
-                        className={`p-2.5 rounded-xl transition-all duration-300 ${isCompareMode ? 'bg-accent text-white shadow-lg shadow-accent/25' : 'bg-bg-tertiary text-text-secondary hover:text-accent hover:bg-bg-tertiary/80'}`}
-                        title="Compare Versions"
-                    >
-                        <CompareArrowsIcon fontSize="small" />
-                    </button>
+                    <div className="flex gap-2">
+                        {/* Edit Toggle */}
+                        <button
+                            onClick={onToggleEditMode}
+                            className={`p-2.5 rounded-xl transition-all duration-300 ${isEditMode ? 'bg-accent text-white shadow-lg shadow-accent/25' : 'bg-bg-tertiary text-text-secondary hover:text-accent hover:bg-bg-tertiary/80'}`}
+                            title="Edit Versions"
+                        >
+                            <EditIcon fontSize="small" />
+                        </button>
+                        {/* Compare Toggle */}
+                        <button
+                            onClick={onToggleCompareMode}
+                            className={`p-2.5 rounded-xl transition-all duration-300 ${isCompareMode ? 'bg-accent text-white shadow-lg shadow-accent/25' : 'bg-bg-tertiary text-text-secondary hover:text-accent hover:bg-bg-tertiary/80'}`}
+                            title="Compare Versions"
+                        >
+                            <CompareArrowsIcon fontSize="small" />
+                        </button>
+                    </div>
                 </div>
 
                 {/* Project Selector */}
@@ -106,19 +157,22 @@ export default function Sidebar({
                     const isSelected = selectedVersion?.id === version.id;
                     const isChosenForCompare = selectedForCompare.includes(version.id);
                     const active = isCompareMode ? isChosenForCompare : isSelected;
+                    const isEditing = editingId === version.id;
 
                     return (
                         <div
                             key={version.id}
-                            onClick={() => onVersionSelect(version)}
-                            className={`p-4 rounded-xl cursor-pointer transition-all duration-300 border relative overflow-hidden group
+                            onClick={() => !isEditMode && onVersionSelect(version)}
+                            className={`p-4 rounded-xl transition-all duration-300 border relative overflow-hidden group
                                 ${active
                                     ? "bg-accent/10 border-accent shadow-md"
                                     : "bg-bg-primary/40 border-transparent hover:bg-bg-primary/80 hover:border-border/50"
-                                }`}
+                                }
+                                ${isEditMode ? "cursor-default" : "cursor-pointer"}
+                            `}
                         >
                             <div className="flex justify-between items-start mb-2 relative z-10">
-                                <div className="flex items-center gap-3 overflow-hidden">
+                                <div className="flex items-center gap-3 overflow-hidden flex-1">
                                     {isCompareMode && (
                                         <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center transition-colors
                                             ${isChosenForCompare ? 'border-accent bg-accent' : 'border-text-secondary/50'}
@@ -126,10 +180,28 @@ export default function Sidebar({
                                             {isChosenForCompare && <CheckCircleIcon style={{ fontSize: 14 }} className="text-white" />}
                                         </div>
                                     )}
-                                    <div>
-                                        <span className={`font-bold block truncate transition-colors ${active ? 'text-accent' : 'text-text-primary'}`}>
-                                            {version.versionLabel}
-                                        </span>
+                                    <div className="flex-1 overflow-hidden">
+                                        {isEditing ? (
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    autoFocus
+                                                    value={editValue}
+                                                    onChange={(e) => setEditValue(e.target.value)}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    className="bg-bg-primary/80 text-text-primary border border-accent rounded px-2 py-1 text-sm w-full outline-none"
+                                                />
+                                                <button onClick={(e) => saveEditing(e, version.id)} className="text-accent hover:text-accent/80">
+                                                    <CheckIcon fontSize="small" />
+                                                </button>
+                                                <button onClick={cancelEditing} className="text-text-secondary hover:text-text-primary">
+                                                    <CloseIcon fontSize="small" />
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <span className={`font-bold block truncate transition-colors ${active ? 'text-accent' : 'text-text-primary'}`}>
+                                                {version.versionLabel}
+                                            </span>
+                                        )}
                                         <div className="flex items-center gap-2 text-[10px] text-text-secondary mt-0.5">
                                             <span>{safeFormatDate(version.uploadedAt, "MMM d, yyyy")}</span>
                                             <span className="w-1 h-1 rounded-full bg-text-secondary/50"></span>
@@ -137,9 +209,29 @@ export default function Sidebar({
                                         </div>
                                     </div>
                                 </div>
-                                {active && !isCompareMode && (
-                                    <ArrowForwardIosIcon className="text-accent animate-fade-in" style={{ fontSize: 14 }} />
-                                )}
+                                <div className="flex items-center gap-1">
+                                    {isEditMode && !isEditing && (
+                                        <>
+                                            <button
+                                                onClick={(e) => startEditing(e, version)}
+                                                className="p-1.5 rounded-lg bg-bg-tertiary text-text-secondary hover:text-accent hover:bg-bg-tertiary/80 transition-all"
+                                                title="Edit Label"
+                                            >
+                                                <EditIcon style={{ fontSize: 16 }} />
+                                            </button>
+                                            <button
+                                                onClick={(e) => handleDelete(e, version.id)}
+                                                className="p-1.5 rounded-lg bg-bg-tertiary text-text-secondary hover:text-red-500 hover:bg-bg-tertiary/80 transition-all"
+                                                title="Delete Version"
+                                            >
+                                                <DeleteIcon style={{ fontSize: 16 }} />
+                                            </button>
+                                        </>
+                                    )}
+                                    {active && !isCompareMode && !isEditMode && (
+                                        <ArrowForwardIosIcon className="text-accent animate-fade-in" style={{ fontSize: 14 }} />
+                                    )}
+                                </div>
                             </div>
                         </div>
                     );
