@@ -77,10 +77,10 @@ export default function Header() {
               <Logo size={32} className="text-accent group-hover:rotate-12 transition-transform duration-300" />
               <div className="flex items-baseline">
                 <h2 className="text-text-primary text-xl font-bold tracking-tight">
-                  Kodumun
+                  Core
                 </h2>
                 <h3 className="text-accent text-sm font-bold ml-0.5">
-                  &lt;Hatası&gt;
+                  &lt;Error&gt;
                 </h3>
               </div>
             </div>

@@ -18,10 +18,10 @@ export default function Footer() {
               <Logo size={28} className="text-accent group-hover:rotate-12 transition-transform duration-300" />
               <div className="flex items-baseline">
                 <h2 className="text-text-primary text-lg font-bold tracking-tight">
-                  Kodumun
+                  Core
                 </h2>
                 <h3 className="text-accent text-sm font-bold ml-0.5">
-                  &lt;Hatası&gt;
+                  &lt;Error&gt;
                 </h3>
               </div>
             </div>
@@ -97,7 +97,7 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="border-t border-border/30 mt-8 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-xs text-text-secondary">
-            © {currentYear} KodumunHatası AI Inc. All rights reserved.
+            © {currentYear} CoreError AI Inc. All rights reserved.
           </p>
           <div className="flex gap-6 text-xs text-text-secondary">
             <a href="#" className="hover:text-accent transition-colors cursor-pointer">

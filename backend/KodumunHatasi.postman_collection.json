@@ -1,6 +1,6 @@
 {
   "info": {
-    "name": "KodumunHatasi API",
+    "name": "CoreError API",
     "description": "AI-Assisted Deterministic Code Review Backend API",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
